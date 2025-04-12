@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Ordens de Serviço</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Relatório de Ordens de Serviço</h1>
+
+        <div class="filter-container">
+            <input type="text" id="filtro" placeholder="Filtrar por cliente, equipamento ou status..."
+                onkeyup="filtrarTabela()">
+        </div>
+
+        {% if ordens %}
+        <div class="table-container">
+            <table class="relatorio-table" id="tabelaOrdens">
+                <thead>
+                    <tr>
+                        <th>OS #</th>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>Status</th>
+                        <th>Técnico</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ordem in ordens %}
+                    <tr>
+                        <td>{{ ordem[0] }}</td>
+                        <td>{{ ordem[1] }}</td>
+                        <td>{{ ordem[2] }} {{ ordem[3] }}</td>
+                        <td>
+                            <span class="status-badge status-{{ ordem[4]|lower|replace(' ', '-') }}">
+                                {{ ordem[4] }}
+                            </span>
+                        </td>
+                        <td>{{ ordem[6] }}</td>
+                        <td>{{ ordem[7]|formatdate }}</td>
+                        <td class="actions-cell">
+                            <a href="{{ url_for('visualizar_ordem', ordem_id=ordem[0]) }}" class="btn-view">
+                                <i class="fas fa-eye"></i> Ver
+                            </a>
+                            {% if ordem[9] or ordem[10] %}
+                            <button class="btn-photo" onclick="verFotos({{ ordem[8] }})"
+                                aria-label="Ver fotos do equipamento">
+                                <i class="fas fa-images"></i> Fotos
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <p>Nenhuma ordem de serviço encontrada.</p>
+        </div>
+        {% endif %}
+
+        <div class="buttons">
+            <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+        </div>
+    </div>
+
+    <!-- Modal para visualização de fotos -->
+    <div id="fotoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Fotos do Equipamento</h2>
+            <div class="foto-container">
+                <div class="foto-wrapper" id="foto1-container">
+                    <h3>Foto 1</h3>
+                    <img id="foto1" src="" alt="Foto 1 do equipamento">
+                    <p class="no-photo-message" id="no-foto1">Nenhuma foto disponível</p>
+                </div>
+                <div class="foto-wrapper" id="foto2-container">
+                    <h3>Foto 2</h3>
+                    <img id="foto2" src="" alt="Foto 2 do equipamento">
+                    <p class="no-photo-message" id="no-foto2">Nenhuma foto disponível</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para filtrar tabela
+        function filtrarTabela() {
+            const filtro = document.getElementById('filtro').value.toLowerCase();
+            const tabela = document.getElementById('tabelaOrdens');
+            const linhas = tabela.getElementsByTagName('tr');
+
+            for (let i = 1; i < linhas.length; i++) { // Começa do 1 para pular o cabeçalho
+                const linha = linhas[i];
+                let visivel = false;
+
+                // Verifica todas as células exceto a última (ações)
+                for (let j = 0; j < linha.cells.length - 1; j++) {
+                    const conteudo = linha.cells[j].textContent.toLowerCase();
+                    if (conteudo.includes(filtro)) {
+                        visivel = true;
+                        break;
+                    }
+                }
+
+                linha.style.display = visivel ? '' : 'none';
+            }
+        }
+
+        // Modal de fotos
+        const modal = document.getElementById("fotoModal");
+        const span = document.getElementsByClassName("close-modal")[0];
+
+        // Fechar modal quando clicar no X
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        // Fechar modal quando clicar fora dele
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Função para visualizar fotos
+        function verFotos(equipamentoId) {
+            // Limpa imagens anteriores
+            document.getElementById("foto1").src = "";
+            document.getElementById("foto2").src = "";
+            document.getElementById("no-foto1").style.display = "none";
+            document.getElementById("no-foto2").style.display = "none";
+            document.getElementById("foto1-container").style.display = "block";
+            document.getElementById("foto2-container").style.display = "block";
+
+            // Busca as fotos via AJAX
+            fetch('/get_fotos/' + equipamentoId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.foto1) {
+                        document.getElementById("foto1").src = data.foto1;
+                        document.getElementById("foto1").style.display = "block";
+                    } else {
+                        document.getElementById("no-foto1").style.display = "block";
+                        document.getElementById("foto1").style.display = "none";
+                    }
+
+                    if (data.foto2) {
+                        document.getElementById("foto2").src = data.foto2;
+                        document.getElementById("foto2").style.display = "block";
+                    } else {
+                        document.getElementById("no-foto2").style.display = "block";
+                        document.getElementById("foto2").style.display = "none";
+                    }
+
+                    modal.style.display = "block";
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar fotos:', error);
+                    alert('Erro ao carregar as fotos do equipamento.');
+                });
+        }
+    </script>
+</body>
+
+</html>

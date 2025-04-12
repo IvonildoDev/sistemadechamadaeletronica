@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordem de Serviço #{{ ordem[0] }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="ordem-header">
+            <h1 class="title">Ordem de Serviço #{{ ordem[0] }}</h1>
+            <div class="buttons no-print">
+                <button onclick="window.print()" class="btn-primary">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <a href="{{ url_for('servico_tecnico', ordem_id=ordem[0]) }}" class="btn-success">
+                    <i class="fas fa-tools"></i> Registrar Serviço Técnico
+                </a>
+                <a href="{{ url_for('index') }}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+
+        <div class="barcode-container">
+            <h2>Código da Ordem: {{ ordem_cod }}</h2>
+            <img src="data:image/png;base64,{{ barcode }}" alt="Código de barras da OS">
+        </div>
+
+        <div class="ordem-info">
+            <h2 class="subtitle">Informações do Cliente</h2>
+            <table>
+                <tr>
+                    <th>Nome do Cliente:</th>
+                    <td>{{ ordem[1] }}</td>
+                </tr>
+                <tr>
+                    <th>Data de Criação:</th>
+                    <td>{{ ordem[10]|formatdate }}</td>
+                </tr>
+                <tr>
+                    <th>Técnico Responsável:</th>
+                    <td>{{ ordem[11] }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="ordem-info">
+            <h2 class="subtitle">Informações do Equipamento</h2>
+            <table>
+                <tr>
+                    <th>Marca:</th>
+                    <td>{{ ordem[2] }}</td>
+                </tr>
+                <tr>
+                    <th>Modelo:</th>
+                    <td>{{ ordem[3] }}</td>
+                </tr>
+                <tr>
+                    <th>Número de Série:</th>
+                    <td>{{ ordem[4] or 'Não informado' }}</td>
+                </tr>
+                <tr>
+                    <th>Estado do Equipamento:</th>
+                    <td>{{ ordem[5] }}</td>
+                </tr>
+                <tr>
+                    <th>Defeito Relatado:</th>
+                    <td>{{ ordem[6] }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- <div class="ordem-info">
+            <h2 class="subtitle">Status da Ordem</h2>
+            <table>
+                <tr>
+                    <th>Status Atual:</th>
+                    <td>
+                        <span class="status-badge status-{{ ordem[7]|lower|replace(' ', '-') }}">
+                            {{ ordem[7] }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Declaração:</th>
+                    <td>{{ ordem[8] }}</td>
+                </tr>
+            </table>
+        </div> -->
+
+        <div class="termos-condicoes print">
+            <h2 class="subtitle">Termos e Condições de Serviço</h2>
+            <div class="termos-container">
+                <div class="termo-item">
+                    <div class="termo-icon"><i class="fas fa-shield-alt"></i></div>
+                    <div class="termo-content">
+                        <h4>Garantia de Serviço</h4>
+                        <p>Todos os serviços executados possuem garantia de <strong>90 (noventa) dias</strong>, contados
+                            a partir da data de entrega do equipamento ao cliente. Esta garantia limita-se
+                            exclusivamente aos componentes substituídos e serviços realizados, não se estendendo a
+                            problemas decorrentes de mau uso, quedas, danos elétricos, oxidação, violação por terceiros
+                            ou desgaste natural de componentes. A garantia será automaticamente invalidada caso o
+                            equipamento apresente sinais de violação ou tentativa de reparo por pessoas não autorizadas.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="termo-item">
+                    <div class="termo-icon"><i class="fas fa-clock"></i></div>
+                    <div class="termo-content">
+                        <h4>Prazos e Procedimentos</h4>
+                        <p>O prazo estimado para avaliação técnica inicial é de até 2 (dois) dias úteis. Após aprovação
+                            do orçamento, o prazo para conclusão do serviço é de 7 (sete) dias úteis, podendo
+                            estender-se conforme a complexidade do reparo, disponibilidade de peças ou volume de
+                            serviços em andamento. Em caso de indisponibilidade de peças, o cliente será informado sobre
+                            os novos prazos. A retirada do equipamento deve ser realizada mediante apresentação desta
+                            ordem de serviço e documento de identificação.</p>
+                    </div>
+                </div>
+
+                <div class="termo-item">
+                    <div class="termo-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="termo-content">
+                        <h4>Equipamentos Não Retirados</h4>
+                        <p>Após a conclusão do serviço e comunicação ao cliente, o equipamento deverá ser retirado no
+                            prazo máximo de 30 (trinta) dias corridos. Equipamentos não retirados neste prazo estarão
+                            sujeitos a taxa diária de armazenamento no valor de R$ 20,00 (vinte reais). Decorridos 90
+                            (noventa) dias sem manifestação ou contato do cliente, o equipamento poderá ser considerado
+                            abandonado, nos termos do artigo 1.275, III, do Código Civil Brasileiro, podendo a empresa
+                            dispor do mesmo a seu critério para ressarcimento de despesas.</p>
+                    </div>
+                </div>
+
+                <div class="termo-item">
+                    <div class="termo-icon"><i class="fas fa-signature"></i></div>
+                    <div class="termo-content">
+                        <h4>Acordo e Consentimento</h4>
+                        <p>Ao assinar esta ordem de serviço, o cliente declara ter lido, compreendido e aceito todos os
+                            termos e condições aqui estabelecidos, autorizando expressamente a execução dos serviços
+                            necessários para o reparo do equipamento descrito. Declara ainda estar ciente que, em caso
+                            de não aprovação do orçamento, poderá ser cobrada taxa de avaliação técnica no valor de R$
+                            50,00 (cinquenta reais).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="assinaturas">
+            <div class="assinatura-cliente">
+                <div class="linha-assinatura">___________________________________</div>
+                <p>Assinatura do Cliente</p>
+            </div>
+            <div class="assinatura-atendente">
+                <div class="linha-assinatura">___________________________________</div>
+                <p>Assinatura do Atendente</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adicione os ícones do Font Awesome -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</body>
+
+</html>

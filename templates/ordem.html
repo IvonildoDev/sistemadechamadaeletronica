@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Criar Ordem de Serviço</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <h1>Criar Ordem de Serviço</h1>
+    <form method="POST">
+        <label>Equipamento:</label>
+        <select name="equipamento_id" required>
+            {% for equipamento in equipamentos %}
+            <option value="{{ equipamento[0] }}">{{ equipamento[1] }} - {{ equipamento[2] }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Status:</label>
+        <select name="status" required>
+            <option value="Aberto">Aberto</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Concluído">Concluído</option>
+        </select><br>
+        <label>Relatório de Peças (opcional):</label><textarea name="relatorio_pecas"></textarea><br>
+        <div class="buttons">
+            <button type="submit" class="btn-primary">Criar Ordem</button>
+            <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+        </div>
+    </form>
+</body>
+
+</html>

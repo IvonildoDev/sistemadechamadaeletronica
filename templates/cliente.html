@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Cliente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Cadastrar Cliente</h1>
+
+        <form method="POST" class="form-cliente" id="form-cliente" novalidate>
+            <h2 class="subtitle">Dados Pessoais</h2>
+            <div class="form-group">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required>
+                <div class="error-message" id="nome-error">Por favor, informe o nome do cliente.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+                <div class="error-message" id="email-error">Por favor, informe um email válido.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="telefone">Telefone:</label>
+                <input type="tel" id="telefone" name="telefone" placeholder="DDD + 9 dígitos (Ex: 11987654321)"
+                    maxlength="11" pattern="[0-9]{11}" required value="{{ dados.telefone if dados else '' }}">
+
+                <div class="error-message" id="telefone-error">Informe um telefone válido com DDD + 9 dígitos.</div>
+            </div>
+
+            <h2 class="subtitle">Endereço</h2>
+            <div class="form-group">
+                <label for="rua">Rua:</label>
+                <input type="text" id="rua" name="rua" required>
+                <div class="error-message" id="rua-error">Informe o nome da rua.</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="numero">Número:</label>
+                    <input type="text" id="numero" name="numero" required>
+                    <div class="error-message" id="numero-error">Informe o número.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="complemento">Complemento:</label>
+                    <input type="text" id="complemento" name="complemento">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bairro">Bairro:</label>
+                <input type="text" id="bairro" name="bairro" required>
+                <div class="error-message" id="bairro-error">Informe o bairro.</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cidade">Cidade:</label>
+                    <input type="text" id="cidade" name="cidade" required>
+                    <div class="error-message" id="cidade-error">Informe a cidade.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="estado">Estado:</label>
+                    <input type="text" id="estado" name="estado" required>
+                    <div class="error-message" id="estado-error">Informe o estado.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="cep">CEP:</label>
+                <input type="text" id="cep" name="cep" placeholder="00000-000">
+            </div>
+
+            <div class="buttons">
+                <button type="submit" class="btn-primary">Cadastrar</button>
+                <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

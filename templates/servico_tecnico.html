@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serviço Técnico - OS #{{ ordem[0] }}</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="ordem-header">
+            <h1 class="title">Serviço Técnico - OS #{{ ordem[0] }}</h1>
+            <div class="buttons no-print">
+                <a href="{{ url_for('visualizar_ordem', ordem_id=ordem[0]) }}" class="btn-secondary">
+                    <i class="fas fa-eye"></i> Ver Ordem
+                </a>
+                <a href="{{ url_for('index') }}" class="btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+
+        <form method="POST" class="form-servico" id="form-servico">
+            <div class="form-section">
+                <h2 class="subtitle">Dados Básicos</h2>
+                <div class="form-info-readonly">
+                    <div class="info-row">
+                        <div class="info-label">Cliente:</div>
+                        <div class="info-value">{{ ordem[1] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Equipamento:</div>
+                        <div class="info-value">{{ ordem[2] }} {{ ordem[3] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Defeito Relatado:</div>
+                        <div class="info-value">{{ ordem[6] }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="subtitle">Diagnóstico Técnico</h2>
+                <div class="form-group">
+                    <label for="diagnostico">Diagnóstico Detalhado:</label>
+                    <textarea id="diagnostico" name="diagnostico" rows="4"
+                        required>{{ servico.diagnostico if servico else '' }}</textarea>
+                    <div class="error-message" id="diagnostico-error">Informe o diagnóstico técnico.</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="subtitle">Produtos e Peças Utilizadas</h2>
+                <div id="produtos-container">
+                    {% if servico and servico.produtos %}
+                    {% for produto in servico.produtos %}
+                    <div class="produto-item">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Descrição:</label>
+                                <input type="text" name="produto_descricao[]" value="{{ produto.descricao }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantidade:</label>
+                                <input type="number" name="produto_quantidade[]" value="{{ produto.quantidade }}"
+                                    min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Unitário (R$):</label>
+                                <input type="number" name="produto_valor[]" value="{{ produto.valor }}" step="0.01"
+                                    min="0" required>
+                            </div>
+                            <div class="form-group action-group">
+                                <button type="button" class="btn-warning remove-produto">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="produto-item">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Descrição:</label>
+                                <input type="text" name="produto_descricao[]" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantidade:</label>
+                                <input type="number" name="produto_quantidade[]" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Unitário (R$):</label>
+                                <input type="number" name="produto_valor[]" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group action-group">
+                                <button type="button" class="btn-warning remove-produto">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" id="add-produto" class="btn-secondary">
+                    <i class="fas fa-plus"></i> Adicionar Produto/Peça
+                </button>
+            </div>
+
+            <div class="form-section">
+                <h2 class="subtitle">Mão de Obra</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="descricao_servico">Descrição do Serviço:</label>
+                        <input type="text" id="descricao_servico" name="descricao_servico"
+                            value="{{ servico.descricao_servico if servico else '' }}" required>
+                        <div class="error-message" id="descricao_servico-error">Informe a descrição do serviço.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="valor_mao_obra">Valor da Mão de Obra (R$):</label>
+                        <input type="number" id="valor_mao_obra" name="valor_mao_obra" step="0.01" min="0"
+                            value="{{ servico.valor_mao_obra if servico else '' }}" required>
+                        <div class="error-message" id="valor_mao_obra-error">Informe o valor da mão de obra.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="subtitle">Detalhamento do Serviço</h2>
+                <div class="form-group">
+                    <label for="servico_realizado">O que foi feito:</label>
+                    <textarea id="servico_realizado" name="servico_realizado" rows="5"
+                        required>{{ servico.servico_realizado if servico else '' }}</textarea>
+                    <div class="error-message" id="servico-error">Descreva o serviço realizado.</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2 class="subtitle">Atualização de Status</h2>
+                <div class="form-group">
+                    <label for="status">Status da Ordem:</label>
+                    <select id="status" name="status" required>
+                        <option value="">Selecione o status</option>
+                        <option value="Em análise" {% if ordem[7]=='Em análise' %}selected{% endif %}>Em análise
+                        </option>
+                        <option value="Orçamento pendente" {% if ordem[7]=='Orçamento pendente' %}selected{% endif %}>
+                            Orçamento pendente</option>
+                        <option value="Aguardando aprovação" {% if ordem[7]=='Aguardando aprovação' %}selected{% endif
+                            %}>Aguardando aprovação</option>
+                        <option value="Aprovado" {% if ordem[7]=='Aprovado' %}selected{% endif %}>Aprovado</option>
+                        <option value="Em reparo" {% if ordem[7]=='Em reparo' %}selected{% endif %}>Em reparo</option>
+                        <option value="Concluído" {% if ordem[7]=='Concluído' %}selected{% endif %}>Concluído</option>
+                        <option value="Entregue" {% if ordem[7]=='Entregue' %}selected{% endif %}>Entregue</option>
+                    </select>
+                    <div class="error-message" id="status-error">Selecione o status da ordem.</div>
+                </div>
+            </div>
+
+            <div class="form-section total-section">
+                <h2 class="subtitle">Total do Serviço</h2>
+                <div class="total-box">
+                    <div class="total-label">Valor Total (R$):</div>
+                    <div class="total-value" id="valor-total">0,00</div>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i> Salvar Serviço Técnico
+                </button>
+                <a href="{{ url_for('visualizar_ordem', ordem_id=ordem[0]) }}" class="btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Adicionar produto
+            document.getElementById('add-produto').addEventListener('click', function () {
+                const container = document.getElementById('produtos-container');
+                const newItem = document.createElement('div');
+                newItem.className = 'produto-item';
+                newItem.innerHTML = `
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Descrição:</label>
+                            <input type="text" name="produto_descricao[]" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantidade:</label>
+                            <input type="number" name="produto_quantidade[]" min="1" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Valor Unitário (R$):</label>
+                            <input type="number" name="produto_valor[]" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group action-group">
+                            <button type="button" class="btn-warning remove-produto">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(newItem);
+
+                // Adicionar evento ao botão remover
+                const buttons = document.querySelectorAll('.remove-produto');
+                buttons[buttons.length - 1].addEventListener('click', function () {
+                    container.removeChild(newItem);
+                    calcularTotal();
+                });
+
+                // Adicionar eventos para recalcular total
+                const inputs = newItem.querySelectorAll('input[type="number"]');
+                inputs.forEach(input => {
+                    input.addEventListener('input', calcularTotal);
+                });
+
+                calcularTotal();
+            });
+
+            // Remover produto
+            const removeButtons = document.querySelectorAll('.remove-produto');
+            removeButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const item = this.closest('.produto-item');
+                    item.parentNode.removeChild(item);
+                    calcularTotal();
+                });
+            });
+
+            // Calcular total
+            function calcularTotal() {
+                let total = 0;
+
+                // Valor das peças/produtos
+                const descricoes = document.getElementsByName('produto_descricao[]');
+                const quantidades = document.getElementsByName('produto_quantidade[]');
+                const valores = document.getElementsByName('produto_valor[]');
+
+                for (let i = 0; i < descricoes.length; i++) {
+                    const qtd = parseFloat(quantidades[i].value) || 0;
+                    const val = parseFloat(valores[i].value) || 0;
+                    total += qtd * val;
+                }
+
+                // Valor da mão de obra
+                const valorMaoObra = parseFloat(document.getElementById('valor_mao_obra').value) || 0;
+                total += valorMaoObra;
+
+                // Atualizar valor total
+                document.getElementById('valor-total').textContent = total.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            // Adicionar eventos a todos os campos numéricos existentes
+            const allInputs = document.querySelectorAll('input[type="number"]');
+            allInputs.forEach(input => {
+                input.addEventListener('input', calcularTotal);
+            });
+
+            // Calcular total inicial
+            calcularTotal();
+
+            // Validação do formulário
+            document.getElementById('form-servico').addEventListener('submit', function (event) {
+                let isValid = true;
+
+                // Validar campos obrigatórios
+                const requiredFields = [
+                    'diagnostico',
+                    'descricao_servico',
+                    'valor_mao_obra',
+                    'servico_realizado',
+                    'status'
+                ];
+
+                requiredFields.forEach(field => {
+                    const input = document.getElementById(field);
+                    const errorElement = document.getElementById(field + '-error');
+
+                    if (!input.value.trim()) {
+                        input.classList.add('error');
+                        if (errorElement) errorElement.style.display = 'block';
+                        isValid = false;
+                    } else {
+                        input.classList.remove('error');
+                        if (errorElement) errorElement.style.display = 'none';
+                    }
+                });
+
+                // Validar produtos
+                const descricoes = document.getElementsByName('produto_descricao[]');
+                const quantidades = document.getElementsByName('produto_quantidade[]');
+                const valores = document.getElementsByName('produto_valor[]');
+
+                for (let i = 0; i < descricoes.length; i++) {
+                    if (!descricoes[i].value.trim()) {
+                        descricoes[i].classList.add('error');
+                        isValid = false;
+                    } else {
+                        descricoes[i].classList.remove('error');
+                    }
+
+                    if (!quantidades[i].value || parseInt(quantidades[i].value) < 1) {
+                        quantidades[i].classList.add('error');
+                        isValid = false;
+                    } else {
+                        quantidades[i].classList.remove('error');
+                    }
+
+                    if (!valores[i].value || parseFloat(valores[i].value) < 0) {
+                        valores[i].classList.add('error');
+                        isValid = false;
+                    } else {
+                        valores[i].classList.remove('error');
+                    }
+                }
+
+                if (!isValid) {
+                    event.preventDefault();
+                    alert('Por favor, preencha todos os campos obrigatórios corretamente.');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

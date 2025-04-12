@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Equipamento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Cadastrar Equipamento</h1>
+
+        <form method="POST" class="form-equipamento" id="form-equipamento" enctype="multipart/form-data" novalidate>
+            <h2 class="subtitle">Dados do Cliente</h2>
+            <div class="form-group">
+                <label for="cliente_id">Cliente:</label>
+                <select id="cliente_id" name="cliente_id" required>
+                    <option value="">Selecione um cliente</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente[0] }}">{{ cliente[1] }}</option>
+                    {% endfor %}
+                </select>
+                <div class="error-message" id="cliente-error">Selecione um cliente.</div>
+            </div>
+
+            <h2 class="subtitle">Dados do Equipamento</h2>
+            <div class="form-group">
+                <label for="marca">Marca:</label>
+                <input type="text" id="marca" name="marca" required>
+                <div class="error-message" id="marca-error">Informe a marca do equipamento.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="modelo">Modelo:</label>
+                <input type="text" id="modelo" name="modelo" required>
+                <div class="error-message" id="modelo-error">Informe o modelo do equipamento.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="serie">Número de Série:</label>
+                <input type="text" id="serie" name="serie">
+            </div>
+
+            <div class="form-group">
+                <label for="estado_equipamento">Estado do Equipamento:</label>
+                <input type="text" id="estado_equipamento" name="estado_equipamento"
+                    placeholder="Descreva o estado atual do equipamento" required>
+                <div class="error-message" id="estado-error">Informe o estado do equipamento.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="defeito_relatado">Defeito Relatado:</label>
+                <textarea id="defeito_relatado" name="defeito_relatado" rows="4" required></textarea>
+                <div class="error-message" id="defeito-error">Descreva o defeito relatado pelo cliente.</div>
+            </div>
+
+            <h2 class="subtitle">Fotos do Equipamento</h2>
+            <div class="form-group">
+                <label for="foto1">Foto 1:</label>
+                <input type="file" id="foto1" name="foto1" accept="image/*">
+            </div>
+
+            <div class="form-group">
+                <label for="foto2">Foto 2:</label>
+                <input type="file" id="foto2" name="foto2" accept="image/*">
+            </div>
+
+            <div class="buttons">
+                <button type="submit" class="btn-primary">Cadastrar e Gerar Código de Barras</button>
+                <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

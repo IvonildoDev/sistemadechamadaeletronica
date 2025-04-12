@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipamento #{{ equipamento[0] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="ordem-header">
+            <h1 class="title">Equipamento #{{ equipamento[0] }}</h1>
+            <div class="buttons no-print">
+                <button onclick="window.print()" class="btn-primary">Imprimir</button>
+                <a href="{{ url_for('ordem') }}?equipamento_id={{ equipamento[0] }}" class="btn-success">Criar Ordem de
+                    Serviço</a>
+                <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+            </div>
+        </div>
+
+        <div class="barcode-container">
+            <h2>Código do Equipamento: {{ equipamento[7] }}</h2>
+            <img src="data:image/png;base64,{{ barcode }}" alt="Código de barras do equipamento">
+        </div>
+
+        <div class="ordem-info">
+            <h2 class="subtitle">Informações do Cliente</h2>
+            <table>
+                <tr>
+                    <th>Nome do Cliente:</th>
+                    <td>{{ equipamento[1] }}</td>
+                </tr>
+                <tr>
+                    <th>Data de Cadastro:</th>
+                    <td>{{ equipamento[8]|formatdate }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="ordem-info">
+            <h2 class="subtitle">Informações do Equipamento</h2>
+            <table>
+                <tr>
+                    <th>Marca:</th>
+                    <td>{{ equipamento[2] }}</td>
+                </tr>
+                <tr>
+                    <th>Modelo:</th>
+                    <td>{{ equipamento[3] }}</td>
+                </tr>
+                <tr>
+                    <th>Número de Série:</th>
+                    <td>{{ equipamento[4] or 'Não informado' }}</td>
+                </tr>
+                <tr>
+                    <th>Estado do Equipamento:</th>
+                    <td>{{ equipamento[5] }}</td>
+                </tr>
+                <tr>
+                    <th>Defeito Relatado:</th>
+                    <td>{{ equipamento[6] }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>
