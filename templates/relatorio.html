@@ -19,6 +19,13 @@
                 onkeyup="filtrarTabela()">
         </div>
 
+        <!-- Adicione esta mensagem antes da tabela -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> As ordens com status <strong>"Entregue"</strong> podem ser removidas do
+            relatório, mas
+            permanecerão armazenadas no banco de dados para fins de garantia pelo período de 90 dias.
+        </div>
+
         {% if ordens %}
         <div class="table-container">
             <table class="relatorio-table" id="tabelaOrdens">
@@ -26,6 +33,7 @@
                     <tr>
                         <th>OS #</th>
                         <th>Cliente</th>
+                        <th>Telefone</th>
                         <th>Equipamento</th>
                         <th>Status</th>
                         <th>Técnico</th>
@@ -38,6 +46,7 @@
                     <tr>
                         <td>{{ ordem[0] }}</td>
                         <td>{{ ordem[1] }}</td>
+                        <td>{{ ordem[11] }}</td> <!-- Novo campo telefone -->
                         <td>{{ ordem[2] }} {{ ordem[3] }}</td>
                         <td>
                             <span class="status-badge status-{{ ordem[4]|lower|replace(' ', '-') }}">
@@ -48,12 +57,12 @@
                         <td>{{ ordem[7]|formatdate }}</td>
                         <td class="actions-cell">
                             <a href="{{ url_for('visualizar_ordem', ordem_id=ordem[0]) }}" class="btn-view">
-                                <i class="fas fa-eye"></i> Ver
+                                <i class="fas fa-eye"></i> Ver Detalhes
                             </a>
-                            {% if ordem[9] or ordem[10] %}
-                            <button class="btn-photo" onclick="verFotos({{ ordem[8] }})"
-                                aria-label="Ver fotos do equipamento">
-                                <i class="fas fa-images"></i> Fotos
+
+                            {% if ordem[4] == 'Entregue' %}
+                            <button onclick="confirmarOcultar({{ ordem[0] }})" class="btn-danger">
+                                <i class="fas fa-trash-alt"></i> Remover do Relatório
                             </button>
                             {% endif %}
                         </td>
@@ -168,6 +177,55 @@
                 .catch(error => {
                     console.error('Erro ao carregar fotos:', error);
                     alert('Erro ao carregar as fotos do equipamento.');
+                });
+        }
+    </script>
+
+    <!-- Adicione este script no final do arquivo, antes do fechamento da tag body -->
+    <script>
+        // Função para confirmar ocultação da ordem
+        function confirmarOcultar(ordemId) {
+            if (confirm('Esta ordem será removida da lista de relatórios, mas continuará armazenada no banco de dados para fins de garantia. Confirma esta ação?')) {
+                ocultarOrdem(ordemId);
+            }
+        }
+
+        // Função para ocultar a ordem via AJAX
+        function ocultarOrdem(ordemId) {
+            fetch('/ocultar_ordem/' + ordemId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remover a linha da tabela
+                        const tabela = document.getElementById('tabelaOrdens');
+                        const linhas = tabela.getElementsByTagName('tr');
+
+                        for (let i = 1; i < linhas.length; i++) {
+                            const idCell = linhas[i].cells[0];
+                            if (idCell.textContent == ordemId) {
+                                // Adicionar uma animação de fade out antes de remover
+                                linhas[i].classList.add('row-removing');
+                                setTimeout(() => {
+                                    linhas[i].remove();
+                                }, 500);
+                                break;
+                            }
+                        }
+
+                        // Notificar usuário
+                        alert('Ordem removida do relatório com sucesso!');
+                    } else {
+                        alert('Erro ao remover ordem: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro ao processar a requisição.');
                 });
         }
     </script>

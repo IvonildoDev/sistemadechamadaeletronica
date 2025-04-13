@@ -409,13 +409,16 @@ textarea.error {
 }
 
 .status-concluído {
-  background-color: #27ae60;
-  color: white;
+  background-color: #28a745;
+}
+
+.status-devolvido-sem-reparo {
+  background-color: #ffc107;
+  color: #212529;
 }
 
 .status-entregue {
-  background-color: #34495e;
-  color: white;
+  background-color: #6c757d;
 }
 
 /* Modal */
@@ -502,6 +505,93 @@ textarea.error {
     font-style: italic;
     padding: 30px 0;
     display: none;
+}
+
+/* Estilos para feedback de validação */
+.feedback-message {
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.feedback-message.error {
+    color: #dc3545;
+    display: block;
+}
+
+.feedback-message.success {
+    color: #28a745;
+    display: block;
+}
+
+.feedback-message.warning {
+    color: #ffc107;
+    display: block;
+}
+
+.feedback-message.loading {
+    color: #6c757d;
+    display: block;
+}
+
+/* Animação de loading */
+.feedback-message.loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    border: 2px solid #6c757d;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Estilos para inputs */
+.input-error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+.input-success {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+}
+
+.required {
+    color: #dc3545;
+    margin-left: 3px;
+}
+
+/* Estilos para alertas */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.warning-text {
+    color: #dc3545;
+    font-weight: 500;
+    margin: 10px 0;
 }
 
 /* Responsividade */
@@ -918,4 +1008,436 @@ textarea.error {
 .total-value {
     font-weight: 700;
     font-size: 24px;
+}
+
+/* Estilos para página de entrega de equipamento */
+.entrega-status-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    gap: 40px;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 30px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.status-item.active {
+    border-color: var(--primary);
+    background-color: rgba(59, 130, 246, 0.1);
+    opacity: 1;
+}
+
+.status-icon {
+    font-size: 32px;
+    color: #777;
+    margin-bottom: 10px;
+}
+
+.status-item.active .status-icon {
+    color: var(--primary);
+}
+
+.status-item span {
+    font-weight: 500;
+}
+
+.tipo-container {
+    display: flex;
+    gap: 30px;
+    margin: 15px 0;
+}
+
+.tipo-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+}
+
+.tipo-item.checked {
+    border-color: var(--primary);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.tipo-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+}
+
+.tipo-item label {
+    font-weight: 500;
+}
+
+.tabela-produtos {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+.tabela-produtos th,
+.tabela-produtos td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.tabela-produtos th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.resumo-valores {
+    margin: 25px 0;
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+}
+
+.resumo-valores table {
+    width: 100%;
+}
+
+.resumo-valores th {
+    text-align: left;
+    padding: 8px 0;
+}
+
+.resumo-valores td {
+    text-align: right;
+    font-weight: 500;
+    padding: 8px 0;
+}
+
+.resumo-valores .total-row {
+    font-size: 1.2em;
+    font-weight: 700;
+    border-top: 2px solid #ddd;
+    margin-top: 10px;
+    color: var(--primary-dark);
+}
+
+.garantia-info, .devolucao-info {
+    margin: 30px 0;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.garantia-content, .devolucao-content {
+    display: flex;
+    padding: 20px;
+}
+
+.garantia-icon, .devolucao-icon {
+    font-size: 32px;
+    margin-right: 20px;
+    color: var(--primary);
+}
+
+.devolucao-icon {
+    color: #f59e0b;
+}
+
+.garantia-text, .devolucao-text {
+    flex: 1;
+}
+
+.garantia-text ul {
+    padding-left: 20px;
+    margin: 15px 0;
+}
+
+.garantia-text li {
+    margin-bottom: 8px;
+}
+
+.motivo-devolucao {
+    font-weight: 500;
+    font-style: italic;
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.declaracao-recebimento {
+    margin: 30px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Adicione ao final do arquivo */
+
+.signature-container {
+    border: 1px dashed #ccc;
+    margin-bottom: 15px;
+    border-radius: var(--border-radius);
+    background-color: #fff;
+    position: relative;
+}
+
+.signature-container:before {
+    content: 'Assine aqui';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ccc;
+    font-size: 1.5em;
+    pointer-events: none;
+    z-index: 0;
+}
+
+#signature-pad {
+    width: 100%;
+    height: 200px;
+    position: relative;
+    z-index: 1;
+}
+
+.signature-tools {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+/* Animações de remoção da tabela */
+@keyframes fadeOutRow {
+    from { 
+        opacity: 1; 
+        transform: translateX(0);
+    }
+    to { 
+        opacity: 0; 
+        transform: translateX(30px);
+        height: 0; 
+        padding: 0; 
+        margin: 0; 
+        border: 0; 
+    }
+}
+
+.row-removing {
+    animation: fadeOutRow 0.5s ease forwards;
+    pointer-events: none;
+}
+
+/* Estilo para o botão de exclusão */
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Estilos para dupla assinatura */
+.signatures-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.signature-column {
+    flex: 1;
+}
+
+.signature-column h4 {
+    margin-bottom: 10px;
+    color: var(--primary-dark);
+}
+
+/* Estilos para assinaturas e impressão */
+.assinaturas-impressao {
+    display: flex;
+    justify-content: space-between;
+    margin: 30px 0;
+    gap: 20px;
+}
+
+.assinatura-box-print {
+    flex: 1;
+    text-align: center;
+}
+
+.linha-assinatura {
+    border-bottom: 1px solid #000;
+    height: 80px;
+    margin-bottom: 10px;
+}
+
+.assinatura-texto {
+    font-weight: 500;
+}
+
+/* Estilos específicos para impressão */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    #guia-impressao, #guia-impressao * {
+        visibility: visible;
+    }
+    
+    #guia-impressao {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 20px;
+        margin: 0;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    /* Garantir que quebras de página sejam limpas */
+    .guia-header, .guia-info, .assinaturas-impressao {
+        page-break-inside: avoid;
+    }
+}
+
+/* Estilos para assinaturas de impressão */
+.assinaturas-impressao {
+    display: flex;
+    justify-content: space-between;
+    margin: 30px 0;
+    gap: 20px;
+}
+
+.assinatura-box-print {
+    flex: 1;
+    text-align: center;
+}
+
+.linha-assinatura {
+    border-bottom: 1px solid #000;
+    height: 80px;
+    margin-bottom: 10px;
+}
+
+.assinatura-texto {
+    font-weight: 500;
+}
+
+/* Estilos para impressão */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .guia-impressao, .guia-impressao * {
+        visibility: visible;
+    }
+    
+    .guia-impressao {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Estilos específicos para impressão da ordem de serviço */
+@media print {
+    body {
+        background-color: white;
+        font-size: 12pt;
+        color: black;
+    }
+    
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    .print {
+        display: block !important;
+    }
+    
+    .ordem-info, .barcode-container, .termos-condicoes, .assinaturas {
+        page-break-inside: avoid;
+        margin-bottom: 15px;
+    }
+    
+    .termo-item {
+        page-break-inside: avoid;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    table th, table td {
+        padding: 5px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .status-badge {
+        padding: 3px 10px;
+        border-radius: 4px;
+        color: white !important;
+        background-color: #777 !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+    
+    .assinaturas {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 50px;
+    }
+    
+    .assinatura-cliente, .assinatura-atendente {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .linha-assinatura {
+        border-top: 1px solid black;
+        margin: 0 20px 5px 20px;
+    }
+    
+    /* Imprime os ícones corretamente */
+    .fas {
+        font-family: 'FontAwesome', sans-serif;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
 }

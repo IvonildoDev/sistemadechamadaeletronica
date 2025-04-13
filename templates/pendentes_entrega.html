@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipamentos Pendentes de Entrega</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+        integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Equipamentos Pendentes de Entrega</h1>
+
+        <div class="filter-container">
+            <input type="text" id="filtro" placeholder="Filtrar por cliente, equipamento ou status..."
+                onkeyup="filtrarTabela()">
+        </div>
+
+        {% if ordens %}
+        <div class="table-container">
+            <table class="relatorio-table" id="tabelaOrdens">
+                <thead>
+                    <tr>
+                        <th>OS #</th>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ordem in ordens %}
+                    <tr>
+                        <td>{{ ordem[0] }}</td>
+                        <td>{{ ordem[1] }}</td>
+                        <td>{{ ordem[2] }} {{ ordem[3] }}</td>
+                        <td>
+                            <span class="status-badge status-{{ ordem[4]|lower|replace(' ', '-') }}">
+                                {{ ordem[4] }}
+                            </span>
+                        </td>
+                        <td>{{ ordem[5]|formatdate }}</td>
+                        <td class="actions-cell">
+                            <button
+                                onclick="abrirModalEntrega({{ ordem[0] }}, '{{ ordem[1] }}', '{{ ordem[2] }} {{ ordem[3] }}')"
+                                class="btn-success">
+                                <i class="fas fa-truck"></i> Realizar Entrega
+                            </button>
+                            <a href="{{ url_for('visualizar_ordem', ordem_id=ordem[0]) }}" class="btn-view">
+                                <i class="fas fa-eye"></i> Ver Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data">
+            <p>Não há equipamentos pendentes de entrega.</p>
+        </div>
+        {% endif %}
+
+        <div class="buttons">
+            <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+        </div>
+    </div>
+
+    <!-- Modal de Entrega -->
+    <div id="entregaModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Registrar Entrega de Equipamento</h2>
+
+            <div id="entrega-info" class="form-info-readonly">
+                <div class="info-row">
+                    <div class="info-label">OS:</div>
+                    <div class="info-value" id="ordem-id"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Cliente:</div>
+                    <div class="info-value" id="cliente-nome"></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Equipamento:</div>
+                    <div class="info-value" id="equipamento-info"></div>
+                </div>
+            </div>
+
+            <form id="entregaForm" method="POST">
+                <input type="hidden" id="ordem_id_input" name="ordem_id">
+
+                <div class="form-section">
+                    <h3 class="subtitle">Dados de Quem Recebe</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="recebedor_nome">Nome Completo <span class="required">*</span></label>
+                            <input type="text" id="recebedor_nome" name="recebedor_nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="recebedor_telefone">Telefone <span class="required">*</span></label>
+                            <input type="tel" id="recebedor_telefone" name="recebedor_telefone" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tipo_entrega">Tipo de Entrega <span class="required">*</span></label>
+                        <select id="tipo_entrega" name="tipo_entrega" required>
+                            <option value="loja">Retirada na Loja</option>
+                            <option value="domicilio">Entrega em Domicílio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Substitua a seção de assinaturas por esta versão simplificada -->
+                <div class="form-section">
+                    <h3 class="subtitle">Assinaturas de Recebimento</h3>
+
+                    <div class="assinaturas-impressao">
+                        <div class="assinatura-box-print">
+                            <div class="linha-assinatura"></div>
+                            <p class="assinatura-texto">Assinatura do Cliente</p>
+                        </div>
+
+                        <div class="assinatura-box-print">
+                            <div class="linha-assinatura"></div>
+                            <p class="assinatura-texto">Assinatura do Representante</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modifique os botões para simplificar -->
+                <div class="buttons">
+                    <button type="button" id="btn-imprimir" class="btn-primary">
+                        <i class="fas fa-print"></i> Imprimir Guia
+                    </button>
+                    <button type="button" class="btn-secondary" id="cancelar-entrega">
+                        <i class="fas fa-times-circle"></i> Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Adicione a biblioteca para a assinatura digital -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+    <script>
+        // Variáveis globais
+        let ordemIdAtual;
+
+        // Função para abrir o modal de entrega
+        function abrirModalEntrega(ordemId, clienteNome, equipamentoInfo) {
+            // Armazenar o ID da ordem atual
+            ordemIdAtual = ordemId;
+
+            // Preencher as informações no modal
+            document.getElementById('ordem-id').textContent = ordemId;
+            document.getElementById('cliente-nome').textContent = clienteNome;
+            document.getElementById('equipamento-info').textContent = equipamentoInfo;
+            document.getElementById('ordem_id_input').value = ordemId;
+
+            // Exibir o modal
+            document.getElementById('entregaModal').style.display = 'block';
+        }
+
+        // Substitua a função imprimirGuia() existente por esta versão:
+        function imprimirGuia() {
+            // 1. Verificar campos obrigatórios
+            const recebedorNome = document.getElementById('recebedor_nome').value;
+            const recebedorTelefone = document.getElementById('recebedor_telefone').value;
+
+            if (!recebedorNome || !recebedorTelefone) {
+                alert('Por favor, preencha o nome e telefone de quem recebe.');
+                return;
+            }
+
+            // 2. Coletar dados do formulário
+            const clienteNome = document.getElementById('cliente-nome').textContent;
+            const equipamentoInfo = document.getElementById('equipamento-info').textContent;
+            const ordemId = document.getElementById('ordem-id').textContent;
+            const tipoEntregaElement = document.getElementById('tipo_entrega');
+            const tipoEntrega = tipoEntregaElement.options[tipoEntregaElement.selectedIndex].text;
+
+            // 3. Formatação de datas
+            const dataAtual = new Date();
+            const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
+
+            const dataGarantia = new Date();
+            dataGarantia.setDate(dataGarantia.getDate() + 90);
+            const garantiaFormatada = dataGarantia.toLocaleDateString('pt-BR');
+
+            // 4. Remover qualquer guia anterior (limpeza)
+            const oldGuia = document.getElementById('guia-impressao-container');
+            if (oldGuia) {
+                document.body.removeChild(oldGuia);
+            }
+
+            // 5. Criar conteúdo da guia com classe específica para impressão
+            const guiaContainer = document.createElement('div');
+            guiaContainer.id = 'guia-impressao-container';
+            guiaContainer.style.position = 'absolute';
+            guiaContainer.style.width = '100%';
+            guiaContainer.style.background = 'white';
+            guiaContainer.style.zIndex = '9999';
+            guiaContainer.style.top = '0';
+            guiaContainer.style.left = '0';
+            guiaContainer.style.padding = '20px';
+            guiaContainer.style.boxSizing = 'border-box';
+
+            // 6. Conteúdo HTML da guia
+            guiaContainer.innerHTML = `
+                <div id="guia-impressao" class="print-section">
+                    <div class="guia-header" style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="margin-bottom: 5px;">Comprovante de Entrega de Equipamento</h2>
+                        <p style="margin: 5px 0;">Ordem de Serviço #${ordemId}</p>
+                        <p style="margin: 5px 0;">Data: ${dataFormatada}</p>
+                    </div>
+                    
+                    <div class="guia-info" style="margin-bottom: 15px;">
+                        <h3 style="margin-bottom: 10px;">Informações da Ordem</h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px; width: 30%;">Cliente:</th>
+                                <td style="padding: 8px;">${clienteNome}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px;">Equipamento:</th>
+                                <td style="padding: 8px;">${equipamentoInfo}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px;">Recebido por:</th>
+                                <td style="padding: 8px;">${recebedorNome}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px;">Telefone:</th>
+                                <td style="padding: 8px;">${recebedorTelefone}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #ddd;">
+                                <th style="text-align: left; padding: 8px;">Tipo de Entrega:</th>
+                                <td style="padding: 8px;">${tipoEntrega}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="guia-info" style="margin-bottom: 15px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9;">
+                        <p style="margin: 5px 0;"><strong>Termo de Garantia:</strong> Este equipamento possui garantia de 90 dias a partir da data 
+                        de entrega (${dataFormatada}), válida até ${garantiaFormatada}. A garantia cobre exclusivamente os 
+                        defeitos relacionados aos serviços executados e peças substituídas.</p>
+                    </div>
+                    
+                    <div class="guia-info" style="margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Declaração:</strong> Declaro que recebi o equipamento acima especificado em perfeitas condições, 
+                        conforme verificado no momento da entrega.</p>
+                    </div>
+                    
+                    <div class="assinaturas-impressao" style="display: flex; justify-content: space-between; margin-top: 40px;">
+                        <div class="assinatura-box-print" style="flex: 1; text-align: center; margin: 0 20px;">
+                            <div class="linha-assinatura" style="border-bottom: 1px solid #000; height: 50px;"></div>
+                            <p style="margin: 5px 0; font-weight: 500;">${recebedorNome}</p>
+                            <p style="margin: 0; font-size: 0.9em;">Cliente/Recebedor</p>
+                        </div>
+                        
+                        <div class="assinatura-box-print" style="flex: 1; text-align: center; margin: 0 20px;">
+                            <div class="linha-assinatura" style="border-bottom: 1px solid #000; height: 50px;"></div>
+                            <p style="margin: 5px 0; font-weight: 500;">Representante da Loja</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 20px;" class="no-print">
+                    <button id="fechar-impressao" style="padding: 10px 20px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Fechar Visualização
+                    </button>
+                </div>
+            `;
+
+            // 7. Adicionar ao documento
+            document.body.appendChild(guiaContainer);
+
+            // 8. Botão para fechar a visualização
+            document.getElementById('fechar-impressao').addEventListener('click', function () {
+                document.body.removeChild(guiaContainer);
+            });
+
+            // 9. Mostrar mensagem antes de imprimir
+            setTimeout(function () {
+                if (confirm('A guia de entrega foi gerada. Deseja imprimir agora?')) {
+                    window.print();
+
+                    // Atualizar status após a impressão
+                    setTimeout(function () {
+                        atualizarStatusEntregue(ordemId);
+                    }, 500);
+                }
+            }, 300);
+        }
+
+        // Função para atualizar o status da ordem para "Entregue"
+        function atualizarStatusEntregue(ordemId) {
+            const formData = new FormData();
+            formData.append('ordem_id', ordemId);
+            formData.append('recebedor_nome', document.getElementById('recebedor_nome').value);
+            formData.append('recebedor_telefone', document.getElementById('recebedor_telefone').value);
+            formData.append('tipo_entrega', document.getElementById('tipo_entrega').value);
+
+            fetch('/marcar_como_entregue', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Fechar o modal
+                        modal.style.display = 'none';
+
+                        // Remover a ordem da tabela
+                        const tabela = document.getElementById('tabelaOrdens');
+                        if (tabela) {
+                            const linhas = tabela.getElementsByTagName('tr');
+
+                            for (let i = 1; i < linhas.length; i++) {
+                                const idCell = linhas[i].cells[0];
+                                if (idCell.textContent == ordemId) {
+                                    linhas[i].remove();
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Mostrar mensagem de sucesso
+                        alert('Equipamento entregue com sucesso!');
+                    } else {
+                        alert('Erro ao registrar entrega: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro ao processar a entrega.');
+                });
+        }
+
+        // Função para filtrar tabela
+        function filtrarTabela() {
+            const filtro = document.getElementById('filtro').value.toLowerCase();
+            const tabela = document.getElementById('tabelaOrdens');
+
+            if (!tabela) return;
+
+            const linhas = tabela.getElementsByTagName('tr');
+
+            for (let i = 1; i < linhas.length; i++) {
+                const linha = linhas[i];
+                let visivel = false;
+
+                for (let j = 0; j < linha.cells.length - 1; j++) {
+                    const conteudo = linha.cells[j].textContent.toLowerCase();
+                    if (conteudo.includes(filtro)) {
+                        visivel = true;
+                        break;
+                    }
+                }
+
+                linha.style.display = visivel ? '' : 'none';
+            }
+        }
+
+        // Configuração do modal e botões quando a página carrega
+        document.addEventListener('DOMContentLoaded', function () {
+            // Configuração do modal
+            const modal = document.getElementById('entregaModal');
+            const span = document.getElementsByClassName('close-modal')[0];
+            const cancelarBtn = document.getElementById('cancelar-entrega');
+            const btnImprimir = document.getElementById('btn-imprimir');
+
+            // Fechar o modal quando clicar no X
+            if (span) {
+                span.onclick = function () {
+                    modal.style.display = 'none';
+                }
+            }
+
+            // Fechar o modal quando clicar em Cancelar
+            if (cancelarBtn) {
+                cancelarBtn.onclick = function () {
+                    modal.style.display = 'none';
+                }
+            }
+
+            // Botão de impressão
+            if (btnImprimir) {
+                btnImprimir.onclick = imprimirGuia;
+            }
+
+            // Fechar o modal quando clicar fora dele
+            window.onclick = function (event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        });
+
+        // Função para formatar o campo de telefone
+        function formatarTelefone(input) {
+            // Remove todos os caracteres não numéricos
+            let numero = input.value.replace(/\D/g, '');
+
+            // Limita a 11 dígitos (DDD + 9 dígitos)
+            if (numero.length > 11) {
+                numero = numero.substring(0, 11);
+            }
+
+            // Formata o número conforme digita
+            if (numero.length > 0) {
+                // Adiciona parênteses no DDD
+                numero = '(' + numero.substring(0, 2) + ')' +
+                    (numero.length > 2 ? ' ' + numero.substring(2, 7) : '') +
+                    (numero.length > 7 ? '-' + numero.substring(7, 11) : '');
+            }
+
+            // Atualiza o valor do input
+            input.value = numero;
+        }
+
+        // Configure o formatador de telefone quando o DOM estiver carregado
+        document.addEventListener('DOMContentLoaded', function () {
+            const telefoneInput = document.getElementById('recebedor_telefone');
+            if (telefoneInput) {
+                telefoneInput.addEventListener('input', function () {
+                    formatarTelefone(this);
+                });
+
+                // Aplica validação no envio do formulário
+                document.getElementById('entregaForm').addEventListener('submit', function (e) {
+                    const telefone = telefoneInput.value.replace(/\D/g, '');
+                    if (telefone.length < 10 || telefone.length > 11) {
+                        alert('Por favor, insira um telefone válido com DDD + 8 ou 9 dígitos');
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

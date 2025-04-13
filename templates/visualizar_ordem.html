@@ -15,7 +15,7 @@
         <div class="ordem-header">
             <h1 class="title">Ordem de Serviço #{{ ordem[0] }}</h1>
             <div class="buttons no-print">
-                <button onclick="window.print()" class="btn-primary">
+                <button onclick="prepararImpressao()" class="btn-primary">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
                 <a href="{{ url_for('servico_tecnico', ordem_id=ordem[0]) }}" class="btn-success">
@@ -38,6 +38,10 @@
                 <tr>
                     <th>Nome do Cliente:</th>
                     <td>{{ ordem[1] }}</td>
+                </tr>
+                <tr>
+                    <th>Telefone:</th>
+                    <td>{{ ordem[12] }}</td> <!-- Novo campo telefone -->
                 </tr>
                 <tr>
                     <th>Data de Criação:</th>
@@ -163,8 +167,18 @@
         </div>
     </div>
 
-    <!-- Adicione os ícones do Font Awesome -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+        function prepararImpressao() {
+            // Exibir mensagem de preparação (opcional)
+            console.log("Preparando documento para impressão...");
+
+            // Pequeno atraso para garantir que o browser processe tudo
+            setTimeout(function () {
+                window.print();
+            }, 300);
+        }
+    </script>
+
 </body>
 
 </html>

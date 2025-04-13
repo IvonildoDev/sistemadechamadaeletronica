@@ -9,6 +9,7 @@ from barcode.writer import ImageWriter
 from io import BytesIO
 import base64
 import json
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta_aqui'  # Altere para uma chave segura em produção
@@ -35,27 +36,22 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
 
 def init_db():
-    try:
-        with sqlite3.connect('database.db') as conn:
-            cursor = conn.cursor()
-            # Verificar se a tabela 'usuarios' existe
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='usuarios'")
-            table_exists = cursor.fetchone()
-            
-            # Se a tabela não existir, criar o esquema completo
-            if not table_exists:
-                print("Inicializando o banco de dados...")
-                with open('schema.sql', 'r') as f:
-                    schema = f.read()
-                conn.executescript(schema)
-                print("Banco de dados inicializado com sucesso!")
-            conn.commit()
-    except Exception as e:
-        print(f"Erro ao inicializar o banco de dados: {e}")
-        # Em caso de erro, recrie o banco do zero
-        if os.path.exists('database.db'):
-            os.remove('database.db')
-            print("Arquivo de banco de dados removido. Tente reiniciar a aplicação.")
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS entregas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ordem_id INTEGER NOT NULL,
+                recebedor_nome TEXT NOT NULL,
+                recebedor_telefone TEXT NOT NULL,
+                tipo_entrega TEXT NOT NULL,
+                data_entrega TIMESTAMP NOT NULL,
+                FOREIGN KEY (ordem_id) REFERENCES ordens (id)
+            )
+        ''')
+        
+        conn.commit()
 
 # Verificar e criar tabelas necessárias que possam estar faltando
 def verificar_tabelas():
@@ -84,6 +80,20 @@ def verificar_tabelas():
             ''')
             conn.commit()
             print("Tabela servicos_tecnicos criada com sucesso!")
+
+        # Verificar se a coluna 'visivel' existe na tabela ordens
+        cursor.execute("PRAGMA table_info(ordens)")
+        colunas = cursor.fetchall()
+        nomes_colunas = [coluna[1] for coluna in colunas]
+        
+        # Se não existir, adicionar a coluna
+        if 'visivel' not in nomes_colunas:
+            print("Adicionando coluna 'visivel' à tabela ordens...")
+            cursor.execute('''
+                ALTER TABLE ordens 
+                ADD COLUMN visivel INTEGER DEFAULT 1
+            ''')
+            conn.commit()
 
 # Inicializar o banco de dados imediatamente
 init_db()
@@ -369,8 +379,9 @@ def visualizar_ordem(ordem_id):
     with sqlite3.connect('database.db') as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            SELECT o.id, c.nome, e.marca, e.modelo, e.serie, e.estado_equipamento, e.defeito_relatado,
-                   o.status, o.declaracao, o.relatorio_pecas, o.data_criacao, u.nome
+            SELECT o.id, c.nome, e.marca, e.modelo, e.serie, e.estado_equipamento, 
+                  e.defeito_relatado, o.status, o.declaracao, o.relatorio_pecas, 
+                  o.data_criacao, u.nome, c.telefone
             FROM ordens o
             JOIN equipamentos e ON o.equipamento_id = e.id
             JOIN clientes c ON e.cliente_id = c.id
@@ -499,6 +510,111 @@ def servico_tecnico(ordem_id):
                            servico=servico,
                            usuario=session.get('usuario_nome'))
 
+@app.route('/entrega_equipamento/<int:ordem_id>', methods=['GET', 'POST'])
+@login_required
+def entrega_equipamento(ordem_id):
+    from datetime import datetime, timedelta
+    
+    # Data atual para a entrega
+    data_atual = datetime.now()
+    
+    # Data de fim da garantia (90 dias)
+    data_garantia = data_atual + timedelta(days=90)
+    
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        
+        # Buscar dados da ordem
+        cursor.execute('''
+            SELECT o.id, c.nome, e.marca, e.modelo, e.serie, e.estado_equipamento, 
+                  e.defeito_relatado, o.status, o.declaracao, o.relatorio_pecas, 
+                  o.data_criacao, u.nome, c.telefone
+            FROM ordens o
+            JOIN equipamentos e ON o.equipamento_id = e.id
+            JOIN clientes c ON e.cliente_id = c.id
+            JOIN usuarios u ON o.usuario_id = u.id
+            WHERE o.id = ?
+        ''', (ordem_id,))
+        ordem = cursor.fetchone()
+        
+        if not ordem:
+            flash('Ordem de serviço não encontrada', 'error')
+            return redirect(url_for('index'))
+        
+        ordem_status = ordem[7]  # Status da ordem
+        
+        # Se for uma ordem concluída, buscar detalhes do serviço
+        servico = None
+        total_pecas = 0
+        valor_total = 0
+        
+        if ordem_status == 'Concluído':
+            cursor.execute('''
+                SELECT diagnostico, descricao_servico, valor_mao_obra, servico_realizado, produtos
+                FROM servicos_tecnicos
+                WHERE ordem_id = ?
+            ''', (ordem_id,))
+            servico_dados = cursor.fetchone()
+            
+            if servico_dados:
+                # Converter produtos de JSON para lista
+                produtos = json.loads(servico_dados[4]) if servico_dados[4] else []
+                
+                # Calcular total de peças
+                for produto in produtos:
+                    quantidade = float(produto['quantidade'])
+                    valor = float(produto['valor'])
+                    total_pecas += quantidade * valor
+                
+                # Valor total (mão de obra + peças)
+                valor_total = float(servico_dados[2]) + total_pecas
+                
+                servico = {
+                    'diagnostico': servico_dados[0],
+                    'descricao_servico': servico_dados[1],
+                    'valor_mao_obra': servico_dados[2],
+                    'servico_realizado': servico_dados[3],
+                    'produtos': produtos
+                }
+        
+        # Tipo de entrega (padrão: loja)
+        tipo_entrega = 'loja'
+        
+        # Motivo de devolução (se for o caso)
+        motivo_devolucao = "Orçamento não aprovado pelo cliente" if ordem_status == 'Devolvido sem reparo' else ""
+        
+        # Se for POST, processar a entrega
+        if request.method == 'POST':
+            tipo_entrega = request.form.get('tipo_entrega', 'loja')
+            
+            if ordem_status == 'Devolvido sem reparo':
+                motivo_devolucao = request.form.get('motivo_devolucao', '')
+            
+            # Atualizar status da ordem para "Entregue"
+            cursor.execute('''
+                UPDATE ordens
+                SET status = 'Entregue'
+                WHERE id = ?
+            ''', (ordem_id,))
+            conn.commit()
+            
+            flash('Equipamento entregue com sucesso!', 'success')
+            
+            # Redirecionar para visualização da ordem
+            return redirect(url_for('visualizar_ordem', ordem_id=ordem_id))
+        
+        return render_template('entrega_equipamento.html', 
+                              ordem=ordem,
+                              ordem_status=ordem_status,
+                              servico=servico,
+                              total_pecas=total_pecas,
+                              valor_total=valor_total,
+                              tipo_entrega=tipo_entrega,
+                              motivo_devolucao=motivo_devolucao,
+                              data_atual=data_atual,
+                              data_garantia=data_garantia,
+                              usuario=session.get('usuario_nome'))
+
 @app.route('/relatorio')
 @login_required
 def relatorio():
@@ -506,38 +622,384 @@ def relatorio():
         cursor = conn.cursor()
         cursor.execute('''
             SELECT o.id, c.nome, e.marca, e.modelo, o.status, o.relatorio_pecas, 
-                   u.nome as tecnico, o.data_criacao, e.id, e.foto1, e.foto2
+                   u.nome as tecnico, o.data_criacao, e.id, e.foto1, e.foto2, c.telefone
             FROM ordens o
             JOIN equipamentos e ON o.equipamento_id = e.id
             JOIN clientes c ON e.cliente_id = c.id
             JOIN usuarios u ON o.usuario_id = u.id
+            WHERE o.visivel = 1  -- Somente ordens visíveis
             ORDER BY o.data_criacao DESC
         ''')
         ordens = cursor.fetchall()
     return render_template('relatorio.html', ordens=ordens, usuario=session.get('usuario_nome'))
 
+# Adicione esta rota após a rota de relatório
+
+@app.route('/pendentes_entrega')
+@login_required
+def pendentes_entrega():
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT o.id, c.nome, e.marca, e.modelo, o.status, o.data_criacao
+            FROM ordens o
+            JOIN equipamentos e ON o.equipamento_id = e.id
+            JOIN clientes c ON e.cliente_id = c.id
+            WHERE o.status IN ('Concluído', 'Devolvido sem reparo')
+            ORDER BY o.data_criacao DESC
+        ''')
+        ordens = cursor.fetchall()
+    return render_template('pendentes_entrega.html', ordens=ordens, usuario=session.get('usuario_nome'))
+
 # Rota para cadastro de usuários (apenas acessível para administradores)
 @app.route('/usuario', methods=['GET', 'POST'])
 @login_required
 def usuario():
-    if session.get('usuario_cargo') != 'Administrador':
-        flash('Você não tem permissão para acessar esta página.')
-        return redirect(url_for('index'))
-        
     if request.method == 'POST':
         nome = request.form['nome']
         email = request.form['email']
         senha = request.form['senha']
         cargo = request.form['cargo']
-        
+
         with sqlite3.connect('database.db') as conn:
             cursor = conn.cursor()
-            cursor.execute('INSERT INTO usuarios (nome, email, senha, cargo) VALUES (?, ?, ?, ?)',
-                         (nome, email, senha, cargo))
-            conn.commit()
+            
+            # Verificar se o nome de usuário já existe
+            cursor.execute('SELECT id FROM usuarios WHERE nome = ?', (nome,))
+            if cursor.fetchone():
+                flash('Este nome de usuário já está sendo utilizado. Por favor, escolha outro nome.', 'error')
+                return render_template('usuario.html', usuario=session.get('usuario_nome'))
+            
+            # Verificar se o email já existe
+            cursor.execute('SELECT id FROM usuarios WHERE email = ?', (email,))
+            if cursor.fetchone():
+                flash('Este email já está registrado no sistema. Use outro email.', 'error')
+                return render_template('usuario.html', usuario=session.get('usuario_nome'))
+            
+            # Se não existir, insere o novo usuário
+            try:
+                cursor.execute('INSERT INTO usuarios (nome, email, senha, cargo) VALUES (?, ?, ?, ?)',
+                           (nome, email, senha, cargo))
+                conn.commit()
+                flash('Usuário cadastrado com sucesso!')
+                return redirect(url_for('index'))
+            except sqlite3.IntegrityError as e:
+                flash(f'Erro ao cadastrar usuário: {str(e)}', 'error')
+                return render_template('usuario.html', usuario=session.get('usuario_nome'))
+
+    return render_template('usuario.html', usuario=session.get('usuario_nome'))
+
+# Novas rotas para verificação assíncrona de usuário/email
+@app.route('/verificar_usuario', methods=['POST'])
+def verificar_usuario():
+    nome = request.form.get('nome')
+    if not nome:
+        return jsonify({'valido': False, 'mensagem': 'Nome de usuário não fornecido'})
+    
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM usuarios WHERE nome = ?', (nome,))
+        usuario_existente = cursor.fetchone()
+        
+    if usuario_existente:
+        return jsonify({'valido': False, 'mensagem': 'Este nome de usuário já está sendo utilizado'})
+    else:
+        return jsonify({'valido': True, 'mensagem': 'Nome de usuário disponível'})
+
+@app.route('/verificar_email', methods=['POST'])
+def verificar_email():
+    email = request.form.get('email')
+    if not email:
+        return jsonify({'valido': False, 'mensagem': 'Email não fornecido'})
+    
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM usuarios WHERE email = ?', (email,))
+        email_existente = cursor.fetchone()
+        
+    if email_existente:
+        return jsonify({'valido': False, 'mensagem': 'Este email já está registrado no sistema'})
+    else:
+        return jsonify({'valido': True, 'mensagem': 'Email disponível'})
+
+@app.route('/usuarios')
+@login_required
+def listar_usuarios():
+    # Verificar se o usuário logado é administrador
+    if session.get('usuario_cargo') != 'Administrador':
+        flash('Acesso restrito a administradores', 'error')
         return redirect(url_for('index'))
     
-    return render_template('usuario.html', usuario=session.get('usuario_nome'))
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, nome, email, cargo FROM usuarios ORDER BY nome')
+        usuarios = cursor.fetchall()
+    
+    return render_template('usuarios.html', usuarios=usuarios, usuario=session.get('usuario_nome'))
+
+@app.route('/excluir_usuario/<int:usuario_id>', methods=['POST'])
+@login_required
+def excluir_usuario(usuario_id):
+    # Verificar se o usuário logado é administrador
+    if session.get('usuario_cargo') != 'Administrador':
+        return jsonify({'success': False, 'message': 'Acesso restrito a administradores'})
+    
+    # Verificar se o usuário está tentando excluir seu próprio usuário
+    if usuario_id == session.get('usuario_id'):
+        return jsonify({'success': False, 'message': 'Você não pode excluir seu próprio usuário'})
+    
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        
+        # Verificar se usuário tem ordens de serviço associadas
+        cursor.execute('SELECT COUNT(*) FROM ordens WHERE usuario_id = ?', (usuario_id,))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            return jsonify({
+                'success': False, 
+                'message': 'Não é possível excluir este usuário pois ele possui ordens de serviço associadas'
+            })
+            
+        # Excluir o usuário
+        cursor.execute('DELETE FROM usuarios WHERE id = ?', (usuario_id,))
+        conn.commit()
+        
+        return jsonify({'success': True, 'message': 'Usuário excluído com sucesso'})
+
+@app.route('/editar_usuario/<int:usuario_id>', methods=['GET', 'POST'])
+@login_required
+def editar_usuario(usuario_id):
+    # Verificar se o usuário logado é administrador
+    if session.get('usuario_cargo') != 'Administrador':
+        flash('Acesso restrito a administradores', 'error')
+        return redirect(url_for('index'))
+    
+    with sqlite3.connect('database.db') as conn:
+        cursor = conn.cursor()
+        
+        if request.method == 'POST':
+            nome = request.form['nome']
+            email = request.form['email']
+            cargo = request.form['cargo']
+            
+            # Se a senha foi preenchida, atualiza a senha também
+            if request.form['senha'].strip():
+                senha = request.form['senha']
+                # Opcionalmente, você pode adicionar hash de senha aqui
+                cursor.execute('''
+                    UPDATE usuarios 
+                    SET nome = ?, email = ?, senha = ?, cargo = ? 
+                    WHERE id = ?
+                ''', (nome, email, senha, cargo, usuario_id))
+            else:
+                # Se não, mantém a senha atual
+                cursor.execute('''
+                    UPDATE usuarios 
+                    SET nome = ?, email = ?, cargo = ? 
+                    WHERE id = ?
+                ''', (nome, email, cargo, usuario_id))
+                
+            conn.commit()
+            flash('Usuário atualizado com sucesso!')
+            return redirect(url_for('listar_usuarios'))
+            
+        # Buscar dados do usuário para exibir no formulário
+        cursor.execute('SELECT id, nome, email, cargo FROM usuarios WHERE id = ?', (usuario_id,))
+        usuario_dados = cursor.fetchone()
+        
+        if not usuario_dados:
+            flash('Usuário não encontrado', 'error')
+            return redirect(url_for('listar_usuarios'))
+            
+    return render_template('editar_usuario.html', 
+                          usuario_dados=usuario_dados, 
+                          usuario=session.get('usuario_nome'))
+
+# Adicione a rota para processar a entrega
+
+@app.route('/processar_entrega', methods=['POST'])
+@login_required
+def processar_entrega():
+    if request.method == 'POST':
+        ordem_id = request.form.get('ordem_id')
+        recebedor_nome = request.form.get('recebedor_nome')
+        recebedor_telefone = request.form.get('recebedor_telefone')
+        tipo_entrega = request.form.get('tipo_entrega')
+        assinatura_cliente = request.form.get('assinatura_cliente')
+        assinatura_representante = request.form.get('assinatura_representante')
+        
+        # Validar dados
+        if not all([ordem_id, recebedor_nome, recebedor_telefone, assinatura_cliente]):
+            return jsonify({
+                'success': False,
+                'message': 'Todos os campos são obrigatórios.'
+            })
+        
+        try:
+            # Salvar a assinatura do cliente como arquivo
+            assinatura_dir = os.path.join(app.static_folder, 'assinaturas')
+            if not os.path.exists(assinatura_dir):
+                os.makedirs(assinatura_dir)
+            
+            # Processar string base64 da assinatura do cliente
+            assinatura_cliente_data = assinatura_cliente.split(',')[1]
+            assinatura_cliente_binary = base64.b64decode(assinatura_cliente_data)
+            
+            # Criar nome de arquivo único para assinatura do cliente
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            cliente_filename = f'assinatura_cliente_os_{ordem_id}_{timestamp}.png'
+            cliente_filepath = os.path.join(assinatura_dir, cliente_filename)
+            
+            # Salvar a imagem da assinatura do cliente
+            with open(cliente_filepath, 'wb') as f:
+                f.write(assinatura_cliente_binary)
+            
+            # Caminho relativo para salvar no banco de dados
+            assinatura_cliente_path = f'static/assinaturas/{cliente_filename}'
+            
+            # Se houver assinatura do representante, salvar também
+            assinatura_representante_path = None
+            if assinatura_representante:
+                # Processar string base64 da assinatura do representante
+                assinatura_representante_data = assinatura_representante.split(',')[1]
+                assinatura_representante_binary = base64.b64decode(assinatura_representante_data)
+                
+                # Criar nome de arquivo único para assinatura do representante
+                rep_filename = f'assinatura_rep_os_{ordem_id}_{timestamp}.png'
+                rep_filepath = os.path.join(assinatura_dir, rep_filename)
+                
+                # Salvar a imagem da assinatura do representante
+                with open(rep_filepath, 'wb') as f:
+                    f.write(assinatura_representante_binary)
+                
+                # Caminho relativo para salvar no banco de dados
+                assinatura_representante_path = f'static/assinaturas/{rep_filename}'
+            
+            with sqlite3.connect('database.db') as conn:
+                cursor = conn.cursor()
+                
+                # Registrar entrega com as duas assinaturas
+                cursor.execute('''
+                    INSERT INTO entregas (
+                        ordem_id, recebedor_nome, recebedor_telefone, 
+                        tipo_entrega, assinatura_cliente_path, assinatura_representante_path, data_entrega
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    ordem_id, recebedor_nome, recebedor_telefone, 
+                    tipo_entrega, assinatura_cliente_path, assinatura_representante_path, datetime.now()
+                ))
+                
+                # Atualizar status da ordem para "Entregue"
+                cursor.execute('''
+                    UPDATE ordens 
+                    SET status = 'Entregue' 
+                    WHERE id = ?
+                ''', (ordem_id,))
+                
+                conn.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Equipamento entregue com sucesso!'
+                })
+                
+        except Exception as e:
+            print(f"Erro ao processar entrega: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao processar entrega: {str(e)}'
+            })
+    
+    return jsonify({
+        'success': False,
+        'message': 'Método inválido.'
+    })
+
+@app.route('/marcar_como_entregue', methods=['POST'])
+@login_required
+def marcar_como_entregue():
+    if request.method == 'POST':
+        ordem_id = request.form.get('ordem_id')
+        recebedor_nome = request.form.get('recebedor_nome')
+        recebedor_telefone = request.form.get('recebedor_telefone')
+        tipo_entrega = request.form.get('tipo_entrega')
+        
+        # Validar dados
+        if not all([ordem_id, recebedor_nome, recebedor_telefone]):
+            return jsonify({
+                'success': False,
+                'message': 'Todos os campos são obrigatórios.'
+            })
+        
+        try:
+            with sqlite3.connect('database.db') as conn:
+                cursor = conn.cursor()
+                
+                # Registrar entrega sem salvar assinaturas
+                cursor.execute('''
+                    INSERT INTO entregas (
+                        ordem_id, recebedor_nome, recebedor_telefone, 
+                        tipo_entrega, data_entrega
+                    ) VALUES (?, ?, ?, ?, ?)
+                ''', (
+                    ordem_id, recebedor_nome, recebedor_telefone, 
+                    tipo_entrega, datetime.now()
+                ))
+                
+                # Atualizar status da ordem para "Entregue"
+                cursor.execute('''
+                    UPDATE ordens 
+                    SET status = 'Entregue' 
+                    WHERE id = ?
+                ''', (ordem_id,))
+                
+                conn.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Equipamento entregue com sucesso!'
+                })
+                
+        except Exception as e:
+            print(f"Erro ao processar entrega: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao processar entrega: {str(e)}'
+            })
+    
+    return jsonify({
+        'success': False,
+        'message': 'Método inválido.'
+    })
+
+# Adicionar a rota para ocultar ordem
+@app.route('/ocultar_ordem/<int:ordem_id>', methods=['POST'])
+@login_required
+def ocultar_ordem(ordem_id):
+    try:
+        with sqlite3.connect('database.db') as conn:
+            cursor = conn.cursor()
+            
+            # Verificar se a ordem existe e está marcada como "Entregue"
+            cursor.execute('SELECT status FROM ordens WHERE id = ?', (ordem_id,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'message': 'Ordem não encontrada.'})
+            
+            if result[0] != 'Entregue':
+                return jsonify({'success': False, 'message': 'Apenas ordens entregues podem ser ocultadas.'})
+            
+            # Marcar a ordem como não visível
+            cursor.execute('UPDATE ordens SET visivel = 0 WHERE id = ?', (ordem_id,))
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Ordem ocultada com sucesso.'})
+            
+    except Exception as e:
+        print(f"Erro ao ocultar ordem: {str(e)}")
+        return jsonify({'success': False, 'message': f'Erro ao processar: {str(e)}'})
 
 if __name__ == '__main__':
     if not os.path.exists('database.db'):

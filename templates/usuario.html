@@ -12,6 +12,16 @@
     <div class="container">
         <h1 class="title">Cadastrar Usuário</h1>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
         <form method="POST" class="form-usuario">
             <div class="form-group">
                 <label for="nome">Nome:</label>

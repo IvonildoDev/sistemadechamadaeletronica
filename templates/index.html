@@ -58,11 +58,23 @@
                             <span>Relatório de Ordens</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ url_for('pendentes_entrega') }}" class="menu-item">
+                            <i class="fas fa-truck"></i>
+                            <span>Entrega de Equipamentos</span>
+                        </a>
+                    </li>
                     {% if session.get('usuario_cargo') == 'Administrador' %}
                     <li>
                         <a href="{{ url_for('usuario') }}" class="menu-item">
                             <i class="fas fa-users-cog"></i>
                             <span>Cadastrar Usuário</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('listar_usuarios') }}" class="menu-item">
+                            <i class="fas fa-user-shield"></i>
+                            <span>Gerenciar Usuários</span>
                         </a>
                     </li>
                     {% endif %}
@@ -130,3 +142,4 @@
 </body>
 
 </html>
+````

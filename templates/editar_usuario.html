@@ -1,0 +1,119 @@
+editar_usuario.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Usuário</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Editar Usuário</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'alert-danger' if category == 'error' else 'alert-success' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form id="editUsuarioForm" method="POST" action="{{ url_for('editar_usuario', usuario_id=usuario_dados[0]) }}">
+            <div class="form-group">
+                <label for="nome">Nome de Usuário<span class="required">*</span></label>
+                <input type="text" id="nome" name="nome" value="{{ usuario_dados[1] }}" required>
+                <div class="feedback-message" id="nome-feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail<span class="required">*</span></label>
+                <input type="email" id="email" name="email" value="{{ usuario_dados[2] }}" required>
+                <div class="feedback-message" id="email-feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="senha">Senha (deixe em branco para manter a atual)</label>
+                <input type="password" id="senha" name="senha" minlength="6">
+                <div class="feedback-message" id="senha-feedback"></div>
+                <small>Se não quiser alterar a senha, deixe este campo em branco.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="cargo">Cargo<span class="required">*</span></label>
+                <select id="cargo" name="cargo" required>
+                    <option value="Administrador" {% if usuario_dados[3]=='Administrador' %}selected{% endif %}>
+                        Administrador</option>
+                    <option value="Técnico" {% if usuario_dados[3]=='Técnico' %}selected{% endif %}>Técnico</option>
+                    <option value="Atendente" {% if usuario_dados[3]=='Atendente' %}selected{% endif %}>Atendente
+                    </option>
+                </select>
+            </div>
+
+            <div class="buttons">
+                <button type="submit" class="btn-primary" id="btnSubmit">Salvar Alterações</button>
+                <a href="{{ url_for('listar_usuarios') }}" class="btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const senhaInput = document.getElementById('senha');
+            const senhaFeedback = document.getElementById('senha-feedback');
+
+            // Verificar força da senha apenas se o campo não estiver vazio
+            const verificarSenha = function () {
+                const senha = senhaInput.value;
+                if (!senha) {
+                    senhaFeedback.textContent = '';
+                    senhaFeedback.className = 'feedback-message';
+                    senhaInput.classList.remove('input-error', 'input-success');
+                    return;
+                }
+
+                if (senha.length < 6) {
+                    senhaFeedback.textContent = 'A senha deve ter pelo menos 6 caracteres';
+                    senhaFeedback.className = 'feedback-message error';
+                    senhaInput.classList.add('input-error');
+                    return;
+                }
+
+                let forca = 0;
+                // Verificar letras minúsculas
+                if (senha.match(/[a-z]/)) forca++;
+                // Verificar letras maiúsculas
+                if (senha.match(/[A-Z]/)) forca++;
+                // Verificar números
+                if (senha.match(/[0-9]/)) forca++;
+                // Verificar caracteres especiais
+                if (senha.match(/[^a-zA-Z0-9]/)) forca++;
+
+                if (forca < 2) {
+                    senhaFeedback.textContent = 'Senha fraca, adicione mais variedade';
+                    senhaFeedback.className = 'feedback-message error';
+                    senhaInput.classList.add('input-error');
+                } else if (forca < 4) {
+                    senhaFeedback.textContent = 'Senha média, pode ser melhorada';
+                    senhaFeedback.className = 'feedback-message warning';
+                    senhaInput.classList.remove('input-error', 'input-success');
+                } else {
+                    senhaFeedback.textContent = 'Senha forte!';
+                    senhaFeedback.className = 'feedback-message success';
+                    senhaInput.classList.add('input-success');
+                }
+            };
+
+            // Adicionar event listener
+            senhaInput.addEventListener('input', verificarSenha);
+        });
+    </script>
+</body>
+
+</html>

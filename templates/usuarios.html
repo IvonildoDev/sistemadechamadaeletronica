@@ -1,0 +1,175 @@
+usuarios.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="title">Gerenciar Usuários</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ 'alert-danger' if category == 'error' else 'alert-success' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="filter-container">
+            <input type="text" id="filtro" placeholder="Filtrar por nome, email ou cargo..." onkeyup="filtrarTabela()">
+        </div>
+
+        <div class="table-container">
+            <table class="relatorio-table" id="tabelaUsuarios">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Cargo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario_item in usuarios %}
+                    <tr>
+                        <td>{{ usuario_item[0] }}</td>
+                        <td>{{ usuario_item[1] }}</td>
+                        <td>{{ usuario_item[2] }}</td>
+                        <td>{{ usuario_item[3] }}</td>
+                        <td class="actions-cell">
+                            <a href="{{ url_for('editar_usuario', usuario_id=usuario_item[0]) }}" class="btn-view">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <button onclick="confirmarExclusao({{ usuario_item[0] }}, '{{ usuario_item[1] }}')"
+                                class="btn-warning">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="buttons">
+            <a href="{{ url_for('usuario') }}" class="btn-success">
+                <i class="fas fa-plus"></i> Novo Usuário
+            </a>
+            <a href="{{ url_for('index') }}" class="btn-secondary">Voltar</a>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação de exclusão -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Confirmar Exclusão</h2>
+            <p>Tem certeza que deseja excluir o usuário <strong id="usuarioNome"></strong>?</p>
+            <p class="warning-text">Esta ação não pode ser desfeita.</p>
+            <div class="buttons">
+                <button id="btnConfirmar" class="btn-warning">Confirmar Exclusão</button>
+                <button id="btnCancelar" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Filtrar tabela
+        function filtrarTabela() {
+            const filtro = document.getElementById('filtro').value.toLowerCase();
+            const tabela = document.getElementById('tabelaUsuarios');
+            const linhas = tabela.getElementsByTagName('tr');
+
+            for (let i = 1; i < linhas.length; i++) { // Começa do 1 para pular o cabeçalho
+                const linha = linhas[i];
+                let visivel = false;
+
+                // Verifica as células 1, 2 e 3 (nome, email e cargo)
+                for (let j = 1; j <= 3; j++) {
+                    const conteudo = linha.cells[j].textContent.toLowerCase();
+                    if (conteudo.includes(filtro)) {
+                        visivel = true;
+                        break;
+                    }
+                }
+
+                linha.style.display = visivel ? '' : 'none';
+            }
+        }
+
+        // Modal de confirmação
+        const modal = document.getElementById("confirmModal");
+        const span = document.getElementsByClassName("close-modal")[0];
+        const btnCancelar = document.getElementById("btnCancelar");
+        const btnConfirmar = document.getElementById("btnConfirmar");
+        let usuarioIdSelecionado = null;
+
+        // Abrir modal de confirmação
+        function confirmarExclusao(id, nome) {
+            usuarioIdSelecionado = id;
+            document.getElementById("usuarioNome").textContent = nome;
+            modal.style.display = "block";
+        }
+
+        // Fechar modal
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        btnCancelar.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        // Fechar modal quando clicar fora dele
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // Excluir usuário
+        btnConfirmar.onclick = function () {
+            if (!usuarioIdSelecionado) return;
+
+            fetch('/excluir_usuario/' + usuarioIdSelecionado, {
+                method: 'POST',
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remover linha da tabela
+                        const rows = document.querySelectorAll('#tabelaUsuarios tbody tr');
+                        for (let row of rows) {
+                            if (row.cells[0].textContent == usuarioIdSelecionado) {
+                                row.remove();
+                                break;
+                            }
+                        }
+
+                        // Fechar modal e mostrar mensagem
+                        modal.style.display = "none";
+                        alert(data.message);
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Ocorreu um erro ao excluir o usuário');
+                });
+        }
+    </script>
+</body>
+
+</html>
