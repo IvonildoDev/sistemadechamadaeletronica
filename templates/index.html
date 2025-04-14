@@ -35,13 +35,13 @@
             <nav class="main-menu">
                 <ul>
                     <li>
-                        <a href="{{ url_for('cliente') }}" class="menu-item">
+                        <a href="{{ url_for('cliente') }}" class="menu-item" data-shortcut="F1">
                             <i class="fas fa-user"></i>
                             <span>Cadastrar Cliente</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('equipamento') }}" class="menu-item">
+                        <a href="{{ url_for('equipamento') }}" class="menu-item" data-shortcut="F2">
                             <i class="fas fa-laptop"></i>
                             <span>Cadastrar Equipamento</span>
                         </a>
@@ -53,15 +53,15 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('relatorio') }}" class="menu-item">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Relatório de Ordens</span>
+                        <a href="{{ url_for('pendentes_entrega') }}" class="menu-item" data-shortcut="F4">
+                            <i class="fas fa-truck"></i>
+                            <span>Entrega de Equipamentos</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url_for('pendentes_entrega') }}" class="menu-item">
-                            <i class="fas fa-truck"></i>
-                            <span>Entrega de Equipamentos</span>
+                        <a href="{{ url_for('relatorio') }}" class="menu-item">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Relatório</span>
                         </a>
                     </li>
                     {% if session.get('usuario_cargo') == 'Administrador' %}
@@ -92,6 +92,11 @@
                             Utilize o menu ao lado para navegar entre as opções disponíveis.</p>
                     </div>
                 </section>
+
+                <!-- Indicador visual para o atalho ESC -->
+                <div class="esc-shortcut-indicator">
+                    <i class="fas fa-keyboard"></i> Pressione <strong>ESC</strong> para voltar à página inicial
+                </div>
 
                 <div class="dashboard-cards">
                     <div class="card">
@@ -139,7 +144,9 @@
             </div>
         </footer>
     </div>
+    <!-- Scripts do sistema -->
+    <script src="{{ url_for('static', filename='js/shortcuts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/debug.js') }}"></script>
 </body>
 
 </html>
-````
