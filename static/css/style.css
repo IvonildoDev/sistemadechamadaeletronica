@@ -203,12 +203,25 @@ textarea.error {
 }
 
 .btn-warning {
-  background-color: var(--warning-color);
-  color: var(--white);
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  margin-right: 5px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .btn-warning:hover {
-  background-color: #c0392b;
+  background-color: #e08600;
+}
+
+.btn-warning i {
+  margin-right: 5px;
 }
 
 .btn-view {
@@ -638,7 +651,9 @@ textarea.error {
   }
   
   .ordem-info,
-  .barcode-container {
+  .barcode-container,
+  .termos-condicoes,
+  .assinaturas {
     box-shadow: none;
     border: 1px solid var(--medium-gray);
     page-break-inside: avoid;
@@ -647,6 +662,34 @@ textarea.error {
   .title::after {
     display: none;
   }
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    
+    .ordem-info, .termos-condicoes, .assinaturas, 
+    .ordem-info *, .termos-condicoes *, .assinaturas * {
+        visibility: visible;
+    }
+    
+    .ordem-header, .barcode-container, .buttons, .no-print {
+        display: none !important;
+    }
+    
+    .container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 20px;
+    }
+    
+    /* Garantir que cada seção principal não seja dividida entre páginas */
+    .ordem-info, .termos-condicoes, .termo-item, .assinaturas {
+        page-break-inside: avoid;
+    }
 }
 
 /* Estilos adicionais para a página inicial */
@@ -1439,5 +1482,136 @@ textarea.error {
         font-family: 'FontAwesome', sans-serif;
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
+    }
+}
+
+/* Indicador de progresso PDF */
+.pdf-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.pdf-progress-message {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+}
+
+/* Configuração de impressão detalhada */
+@media print {
+    /* Configuração de página */
+    @page {
+        margin: 10mm 10mm 10mm 10mm;
+        size: A4;
+    }
+    
+    /* Estilos gerais */
+    body, html {
+        font-size: 10pt !important;
+        line-height: 1.3 !important;
+    }
+    
+    /* Container principal */
+    .container {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        box-shadow: none !important;
+    }
+    
+    /* Ocultar elementos desnecessários */
+    .ordem-header, .barcode-container, .buttons, .no-print {
+        display: none !important;
+    }
+    
+    /* Cabeçalhos e títulos */
+    h1 {
+        font-size: 16pt !important;
+        margin-bottom: 10px !important;
+    }
+    
+    h2, .subtitle {
+        font-size: 14pt !important;
+        margin: 15px 0 10px 0 !important;
+    }
+    
+    h4 {
+        font-size: 11pt !important;
+        margin: 10px 0 5px 0 !important;
+    }
+    
+    /* Informações do cliente e equipamento */
+    .ordem-info {
+        margin-bottom: 10px !important;
+        page-break-inside: avoid;
+        border: 1px solid #ddd;
+        padding: 5px 10px;
+    }
+    
+    /* Tabelas */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 10px !important;
+    }
+    
+    table th, table td {
+        padding: 3px 5px !important;
+        font-size: 9pt !important;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    /* Termos e condições */
+    .termos-condicoes {
+        margin-bottom: 10px !important;
+        page-break-before: avoid;
+    }
+    
+    .termos-container {
+        margin-top: 10px !important;
+    }
+    
+    .termo-item {
+        margin-bottom: 10px !important;
+        page-break-inside: avoid;
+    }
+    
+    .termo-content p {
+        font-size: 9pt !important;
+        margin-bottom: 5px !important;
+        text-align: justify;
+    }
+    
+    .termo-icon {
+        font-size: 14pt !important;
+    }
+    
+    /* Importante: garante que as assinaturas estejam na mesma página que os termos */
+    .assinaturas {
+        margin-top: 20px !important;
+        display: flex;
+        justify-content: space-between;
+        page-break-before: avoid !important;
+        page-break-inside: avoid !important;
+    }
+    
+    .assinatura-cliente, .assinatura-atendente {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .linha-assinatura {
+        border-top: 1px solid black;
+        margin: 0 20px 5px 20px;
     }
 }
